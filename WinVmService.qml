@@ -128,9 +128,20 @@ Item {
   }
 
   function handleProbeOutput(output) {
-    var out = String(output || "")
-    var has3389 = out.indexOf(":3389") !== -1
-    var has8006 = out.indexOf(":8006") !== -1
+    var lines = String(output || "").split("\n")
+    var has3389 = false
+    var has8006 = false
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim()
+      if (line === "") continue
+      // Ensure the listener is owned by root (uid:0, e.g. docker-proxy) to prevent
+      // an unprivileged local user from causing a false "running" state on ports 3389/8006.
+      if (line.indexOf("uid:0") !== -1) {
+        if (line.indexOf(":3389") !== -1) has3389 = true
+        if (line.indexOf(":8006") !== -1) has8006 = true
+      }
+    }
 
     root.port3389Open = has3389
     root.port8006Open = has8006
@@ -169,7 +180,7 @@ Item {
   // Fast port probing via ss
   Process {
     id: probeProcess
-    command: ["ss", "-Htln", "( sport = :3389 or sport = :8006 )"]
+    command: ["ss", "-Htlne", "( sport = :3389 or sport = :8006 )"]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {

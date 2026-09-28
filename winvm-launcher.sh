@@ -9,9 +9,24 @@ MODE="${1:-rdp-keepalive}"
 LOG_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/winvm-freerdp.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 
-# Helper: check if container is listening on ports
+# Helper: check if legitimate Windows VM container is running and listening
 is_container_running() {
-  ss -Htln '( sport = :3389 or sport = :8006 )' 2>/dev/null | grep -qE ":3389|:8006"
+  # 1. Verify port 3389 or 8006 has a listener owned by root (UID 0, e.g. docker-proxy).
+  # An unprivileged local user cannot bind a socket with UID 0.
+  local has_root_listener=false
+  if ss -Htlne '( sport = :3389 or sport = :8006 )' 2>/dev/null | grep -E ":3389|:8006" | grep -q "uid:0"; then
+    has_root_listener=true
+  elif awk '$4=="0A" && ($2 ~ /:0D3D$/ || $2 ~ /:1F46$/) && $8=="0" { found=1; exit } END { exit !found }' /proc/net/tcp /proc/net/tcp6 2>/dev/null; then
+    has_root_listener=true
+  fi
+
+  [[ "$has_root_listener" == "true" ]] || return 1
+
+  # 2. Confirm docker-proxy or qemu is active under root / container
+  if pgrep -u 0 -f "docker-proxy.*(3389|8006)" >/dev/null 2>&1 || pgrep -f "qemu-system-x86_64" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
 }
 
 # Helper: run FreeRDP client directly with full Omarchy parameters
@@ -56,7 +71,7 @@ run_freerdp() {
     "/sound"
     "/microphone"
     "/clipboard"
-    "/cert:ignore"
+    "/cert:tofu"
     "/title:Windows VM - Omarchy"
     "/dynamic-resolution"
     "/gfx:AVC444"
