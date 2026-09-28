@@ -29,6 +29,12 @@ removed so no top-panel surface remains.
    controls, validation, and removal → verify commands match the final plugin
    ID and entry point.
 
+Implementation note: the menu retains VM state, endpoint status, transition
+messages, and all requested actions, but intentionally omits the old bar
+panel's large resource-allocation dashboard. That dashboard was not needed for
+the menu workflow and would make the summoned surface larger without adding a
+requested control.
+
 ## Tests
 
 ```sh
