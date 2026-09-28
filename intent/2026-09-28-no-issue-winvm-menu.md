@@ -1,6 +1,6 @@
 ---
-status: draft
-issue: none — GitHub Issues are disabled for this repository
+status: approved
+issue: 1
 author: olafkfreund
 ---
 
@@ -37,5 +37,4 @@ keyboard. No top-panel widget is installed or required.
 
 ## Open questions
 
-- None. GitHub issue creation was attempted but is unavailable because Issues
-  are disabled for this repository.
+- None.
