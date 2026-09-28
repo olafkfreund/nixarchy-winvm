@@ -55,8 +55,8 @@ When the Windows VM panel popover is open, you can use the following keys:
 
 | Key | Action |
 |---|---|
-| <kbd>L</kbd> | Launch FreeRDP (auto-stop on window close) |
-| <kbd>K</kbd> | FreeRDP Keep-Alive (keeps VM running) |
+| <kbd>L</kbd> | Launch Windows VM / Attach FreeRDP (Keep-Alive) |
+| <kbd>A</kbd> | Launch FreeRDP (Auto-stop on window close) |
 | <kbd>W</kbd> | Open Web Console in default browser |
 | <kbd>F</kbd> | Open Shared Folder (`~/Windows`) |
 | <kbd>S</kbd> | Stop / Gracefully shut down VM container |
