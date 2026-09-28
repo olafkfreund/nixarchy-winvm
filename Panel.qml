@@ -645,7 +645,7 @@ Panel {
 
           // When running and RDP client not attached: Attach FreeRDP
           Button {
-            visible: root.service && root.service.vmState === "running" && !root.service.rdpClientRunning
+            visible: root.service && root.service.vmState === "running" && !root.service.rdpClientRunning && root.service.port3389Open
             width: parent.width
             text: "Attach FreeRDP [L]"
             iconText: "󰍲"

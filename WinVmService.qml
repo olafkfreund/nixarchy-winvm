@@ -149,16 +149,23 @@ Item {
 
     if (isListening) {
       if (root.vmState === "starting") {
-        if (root.startingElapsedSecs > 40 || root.rdpClientRunning) {
+        if (has3389 && (root.startingElapsedSecs > 40 || root.rdpClientRunning)) {
           root.vmState = "running"
           root.statusMessage = ""
+        } else if (has8006 && !has3389) {
+          root.statusMessage = "Web console ready, booting Windows (" + root.startingElapsedSecs + "s)..."
         } else {
           root.statusMessage = "Booting Windows (" + root.startingElapsedSecs + "s)..."
         }
       } else {
-        root.vmState = "running"
-        if (root.statusMessage.indexOf("Booting") !== -1 || root.statusMessage.indexOf("Starting") !== -1) {
-          root.statusMessage = ""
+        if (has3389) {
+          root.vmState = "running"
+          if (root.statusMessage.indexOf("Booting") !== -1 || root.statusMessage.indexOf("Starting") !== -1) {
+            root.statusMessage = ""
+          }
+        } else if (has8006) {
+          root.vmState = "running"
+          root.statusMessage = "Web console active (RDP offline)"
         }
       }
     } else {
