@@ -95,8 +95,7 @@ verify_and_get_rdp_fingerprint() {
   local cert_file="$cert_dir/127.0.0.1_3389.pem"
   local fp_file="${XDG_CONFIG_HOME:-$HOME/.config}/windows/rdp-cert.sha256"
 
-  mkdir -p "$cert_dir" "$(dirname "$fp_file")"
-  chmod 0700 "$cert_dir" "$(dirname "$fp_file")" 2>/dev/null || true
+  mkdir -p "$(dirname "$fp_file")"
 
   local expected_fp=""
   if [[ -f "$fp_file" ]]; then
@@ -104,8 +103,7 @@ verify_and_get_rdp_fingerprint() {
   elif [[ -f "$cert_file" ]]; then
     expected_fp=$(openssl x509 -in "$cert_file" -outform der 2>/dev/null | sha256sum | cut -d' ' -f1 | tr -d '[:space:]')
     if [[ -n "$expected_fp" ]]; then
-      printf '%s\n' "$expected_fp" > "$fp_file"
-      chmod 0600 "$fp_file" 2>/dev/null || true
+      (umask 077; printf '%s\n' "$expected_fp" > "$fp_file")
     fi
   fi
 
@@ -119,8 +117,7 @@ verify_and_get_rdp_fingerprint() {
     fi
   else
     # First-use pin: only pin if 3389 endpoint is verified root docker-proxy
-    printf '%s\n' "$probed_fp" > "$fp_file"
-    chmod 0600 "$fp_file" 2>/dev/null || true
+    (umask 077; printf '%s\n' "$probed_fp" > "$fp_file")
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Pinned initial RDP server certificate fingerprint: $probed_fp" >> "$LOG_FILE"
   fi
 
