@@ -9,6 +9,11 @@ MODE="${1:-rdp-keepalive}"
 LOG_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/winvm-freerdp.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 
+# Prevent dockur/windows samba from executing chmod 2777 on an empty shared directory
+if [[ -d "$HOME/Windows" && -z "$(ls -A "$HOME/Windows" 2>/dev/null)" ]]; then
+  touch "$HOME/Windows/.keep" 2>/dev/null || true
+fi
+
 # Helper: check if endpoint 127.0.0.1:3389 is the legitimate root-owned VM service
 is_rdp_endpoint_valid() {
   # 1. Specifically verify port 3389 has a listener owned by root (UID 0, e.g. docker-proxy).
