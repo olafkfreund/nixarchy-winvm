@@ -19,7 +19,7 @@ is_rdp_endpoint_valid() {
   # 1. Specifically verify port 3389 has a listener owned by root (UID 0, e.g. docker-proxy).
   # An unprivileged local user cannot bind a socket with UID 0.
   local has_root_listener=false
-  if ss -Htlne 'sport = :3389' 2>/dev/null | grep -E ":3389\b" | grep -q "uid:0"; then
+  if ss -Htlne 'sport = :3389' 2>/dev/null | grep -E ":3389\b" | grep -qvE "uid:[1-9]" && ss -Htlne 'sport = :3389' 2>/dev/null | grep -E ":3389\b" | grep -qE "uid:0|docker\.service"; then
     has_root_listener=true
   elif awk '$4=="0A" && $2 ~ /:0D3D$/ && $8=="0" { found=1; exit } END { exit !found }' /proc/net/tcp /proc/net/tcp6 2>/dev/null; then
     has_root_listener=true

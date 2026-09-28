@@ -135,9 +135,10 @@ Item {
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].trim()
       if (line === "") continue
-      // Ensure the listener is owned by root (uid:0, e.g. docker-proxy) to prevent
+      // Ensure the listener is owned by root/docker (uid:0 or system.slice/docker.service) to prevent
       // an unprivileged local user from causing a false "running" state on ports 3389/8006.
-      if (line.indexOf("uid:0") !== -1) {
+      var isRootOrDocker = (line.indexOf("docker.service") !== -1 || line.indexOf("uid:0") !== -1 || (line.indexOf("cgroup:/system.slice") !== -1 && line.indexOf("uid:") === -1)) && !(/uid:[1-9]/.test(line))
+      if (isRootOrDocker) {
         if (line.indexOf(":3389") !== -1) has3389 = true
         if (line.indexOf(":8006") !== -1) has8006 = true
       }
