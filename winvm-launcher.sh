@@ -212,10 +212,11 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Windows VM (auto-stop mode)..." >> "$LOG_FILE"
       if ! is_rdp_endpoint_valid; then
         omarchy-windows-vm launch -k >> "$LOG_FILE" 2>&1 || true
+        sleep 1
       fi
 
-      if ! pgrep -f "xfreerdp" >/dev/null 2>&1; then
-        for attempt in {1..10}; do
+      if ! (pgrep -x "xfreerdp3" >/dev/null 2>&1 || pgrep -x "xfreerdp" >/dev/null 2>&1); then
+        for attempt in {1..12}; do
           if ! is_rdp_endpoint_valid; then break; fi
           if run_freerdp; then break; fi
           sleep 3
@@ -234,10 +235,11 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       if ! is_rdp_endpoint_valid; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Bringing up container via omarchy-windows-vm launch -k..." >> "$LOG_FILE"
         omarchy-windows-vm launch -k >> "$LOG_FILE" 2>&1 || true
+        sleep 1
       fi
 
       # 2. Check if FreeRDP was launched and is already running
-      if pgrep -f "xfreerdp" >/dev/null 2>&1; then
+      if pgrep -x "xfreerdp3" >/dev/null 2>&1 || pgrep -x "xfreerdp" >/dev/null 2>&1; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] FreeRDP client is currently active." >> "$LOG_FILE"
         exit 0
       fi
