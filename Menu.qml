@@ -73,7 +73,7 @@ Item {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
 
-    WlrLayershell.namespace: "io.github.yanuarpmbd.winvm-menu"
+    WlrLayershell.namespace: "nixarchy-winvm-menu"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
@@ -131,7 +131,7 @@ Item {
 
           Text {
             text: root.stateText()
-            color: root.service.isTransitioning ? Color.accent : root.dim
+            color: service.isTransitioning ? Color.accent : root.dim
             font.family: Style.font.family
             font.pixelSize: Style.font.body
           }

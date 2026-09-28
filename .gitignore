@@ -6,3 +6,8 @@ planning.md
 .DS_Store
 *.swp
 *~
+
+# devenv
+.devenv
+.devenv*
+.direnv

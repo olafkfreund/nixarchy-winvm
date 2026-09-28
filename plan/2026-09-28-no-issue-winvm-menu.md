@@ -6,7 +6,7 @@ spec: spec/2026-09-28-no-issue-winvm-menu.md
 
 # Plan: Convert Windows VM controls to an Omarchy menu popout
 
-The approved design converts `io.github.yanuarpmbd.winvm` into a menu-only
+The approved design converts `nixarchy.winvm` into a menu-only
 Omarchy plugin. `Menu.qml` will own a fullscreen, focused-screen, exclusive
 keyboard surface; `WinVmService.qml` and the existing launcher/stat scripts
 remain unchanged service boundaries. The bar widget and nested bar panel are
@@ -34,6 +34,11 @@ messages, and all requested actions, but intentionally omits the old bar
 panel's large resource-allocation dashboard. That dashboard was not needed for
 the menu workflow and would make the summoned surface larger without adding a
 requested control.
+
+Implementation extension: the repository also provides a project-local devenv
+and `nix develop` flake shell with Qt 6's `qmllint` and a single `validate`
+command. This keeps the QML validator reproducible without adding a
+machine-wide package.
 
 ## Tests
 

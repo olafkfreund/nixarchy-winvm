@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "io.github.yanuarpmbd.winvm",
+  "id": "nixarchy.winvm",
   "name": "Windows VM Manager",
   "version": "1.0.0",
   "author": "Yanuar Pambudi",

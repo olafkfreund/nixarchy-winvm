@@ -26,6 +26,13 @@ For local development:
 ./dev/sync
 ```
 
+The sync script validates and enables the plugin but does not restart the
+shell by default. After reviewing the result, reload explicitly with:
+
+```bash
+RESTART_SHELL=1 ./dev/sync
+```
+
 ## Keyboard controls
 
 | Key | Action |
@@ -40,6 +47,23 @@ For local development:
 
 ## Validation
 
+With devenv:
+
+```bash
+devenv shell
+validate
+```
+
+Or with the flake:
+
+```bash
+nix develop
+qmllint --version
+```
+
+The project environment supplies Qt 6's `qmllint`; the flake is the smaller
+shell-only fallback.
+
 ```bash
 omarchy plugin validate .
 qmllint -I "${OMARCHY_PATH:-/usr/share/omarchy}/shell" Menu.qml WinVmService.qml
@@ -49,7 +73,7 @@ bash -n winvm-launcher.sh winvm-stats.sh dev/sync
 ## Remove
 
 ```bash
-omarchy plugin remove io.github.yanuarpmbd.winvm
+omarchy plugin remove nixarchy.winvm
 ```
 
 ## License

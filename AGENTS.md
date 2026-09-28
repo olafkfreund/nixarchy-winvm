@@ -38,8 +38,13 @@ qmllint -I "${OMARCHY_PATH:-/usr/share/omarchy}/shell" \
 bash -n winvm-launcher.sh winvm-stats.sh dev/sync
 ```
 
+These tools are provided by the project environment. Use `devenv shell` or
+`nix develop` before running them; `validate` is also available as a devenv
+script.
+
 For local runtime testing, use `./dev/sync` only after validation. It copies
-the plugin into `~/.config/omarchy/plugins/` and restarts the shell.
+the plugin into `~/.config/omarchy/plugins/`, waits for discovery, and skips
+the shell restart unless `RESTART_SHELL=1` is explicitly set.
 
 ## Change discipline
 
