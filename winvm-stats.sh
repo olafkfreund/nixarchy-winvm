@@ -39,7 +39,8 @@ if [[ "$alloc_ram" =~ ^([0-9]+)G$ ]]; then
   alloc_ram="${BASH_REMATCH[1]} GB"
 fi
 
-pid=$(pgrep -f "qemu-system-x86_64" | head -n1 || true)
+# ponytail: dockur names its QEMU "-name windows,..."; skips other host VMs (e.g. nixarchy-try).
+pid=$(pgrep -f "qemu-system-x86_64.* -name windows," | head -n1 || true)
 
 if [[ -n "$pid" && -d "/proc/$pid" ]]; then
   cmd=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)

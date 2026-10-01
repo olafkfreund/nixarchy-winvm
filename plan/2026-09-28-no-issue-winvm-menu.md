@@ -62,6 +62,10 @@ Test infrastructure correction: ai-mirror must release the key-up half of an
 action after a layer closes on key-down. The fix is tracked in the local
 ai-mirror branch `fix/layer-release-input` at commit `49de649`.
 
+Implementation correction: `winvm-stats.sh` matches only the dockur QEMU
+process (`-name windows,`), so a host test VM such as `nixarchy-try` is not
+reported as the Windows VM.
+
 ## Tests
 
 ```sh
