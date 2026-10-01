@@ -99,6 +99,10 @@ Item {
       FocusScope {
         id: keyScope
         anchors.fill: parent
+        anchors.topMargin: card.contentTopInset
+        anchors.rightMargin: card.contentRightInset
+        anchors.bottomMargin: card.contentBottomInset
+        anchors.leftMargin: card.contentLeftInset
         focus: true
 
         Keys.onPressed: function(event) {
