@@ -40,6 +40,28 @@ and `nix develop` flake shell with Qt 6's `qmllint` and a single `validate`
 command. This keeps the QML validator reproducible without adding a
 machine-wide package.
 
+Implementation extension: UI testing is documented in `docs/vm-testing.md` and
+uses the Nixarchy unattended installer with a temporary HTTPS answers file,
+then boots the resulting qcow2 through `vm-boot-controlled`. VM
+runtime artifacts are excluded from Git.
+
+Implementation extension: guest testing uses `vm-boot-controlled` with QMP,
+a visible GTK display by default, and a read-only 9p repository share. Host compositor input
+and host workspace dispatch are not part of the VM test path.
+
+Implementation extension: the controlled launcher forwards guest SSH on
+localhost port `2222`. The guest enables `sshd` declaratively in its NixOS
+host module and is rebuilt with `nixos-rebuild switch`; SSH and SCP are then
+used for hands-off plugin deployment and inspection.
+
+Implementation correction: the menu surface explicitly refocuses its
+`FocusScope` when becoming visible so keyboard input is delivered to the
+Quickshell layer instead of the previously focused guest window.
+
+Test infrastructure correction: ai-mirror must release the key-up half of an
+action after a layer closes on key-down. The fix is tracked in the local
+ai-mirror branch `fix/layer-release-input` at commit `49de649`.
+
 ## Tests
 
 ```sh

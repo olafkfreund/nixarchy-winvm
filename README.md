@@ -70,6 +70,9 @@ qmllint -I "${OMARCHY_PATH:-/usr/share/omarchy}/shell" Menu.qml WinVmService.qml
 bash -n winvm-launcher.sh winvm-stats.sh dev/sync
 ```
 
+For the complete disposable VM installation and UI-testing workflow, see
+[`docs/vm-testing.md`](docs/vm-testing.md).
+
 ## Remove
 
 ```bash
