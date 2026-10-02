@@ -6,3 +6,15 @@ planning.md
 .DS_Store
 *.swp
 *~
+
+# devenv
+.devenv
+.devenv*
+.direnv
+
+# Nixarchy VM runtime state; never commit guest disks or UEFI variables.
+nixarchy-try.qcow2
+nixarchy-try-efivars.fd
+nixarchy-installer-kernel
+nixarchy-installer-initrd
+dev/__pycache__/

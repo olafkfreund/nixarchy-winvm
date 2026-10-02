@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # winvm-stats.sh - Fast unprivileged VM resource & allocation stats extractor
-# Part of io.github.yanuarpmbd.winvm plugin
+# Part of nixarchy.winvm plugin
 # ==============================================================================
 set -euo pipefail
 
@@ -39,7 +39,8 @@ if [[ "$alloc_ram" =~ ^([0-9]+)G$ ]]; then
   alloc_ram="${BASH_REMATCH[1]} GB"
 fi
 
-pid=$(pgrep -f "qemu-system-x86_64" | head -n1 || true)
+# ponytail: dockur (qemus) starts QEMU with "-name Windows,process=windows"; skips other host VMs.
+pid=$(pgrep -f "qemu-system-x86_64.*process=windows" | head -n1 || true)
 
 if [[ -n "$pid" && -d "/proc/$pid" ]]; then
   cmd=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)

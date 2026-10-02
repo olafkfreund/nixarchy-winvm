@@ -1,58 +1,15 @@
 {
   "schemaVersion": 1,
-  "id": "io.github.yanuarpmbd.winvm",
+  "id": "nixarchy.winvm",
   "name": "Windows VM Manager",
   "version": "1.0.0",
   "author": "Yanuar Pambudi",
   "license": "MIT",
-  "description": "Native Quickshell bar widget and control panel for Omarchy Windows VM",
-  "kinds": [
-    "bar-widget"
-  ],
+  "description": "Keyboard-driven Omarchy menu popout for the Windows VM",
+  "homepage": "https://github.com/olafkfreund/nixarchy-winvm",
+  "kinds": ["menu"],
   "entryPoints": {
-    "barWidget": "BarWidget.qml"
+    "menu": "Menu.qml"
   },
-  "barWidget": {
-    "displayName": "Windows VM",
-    "description": "Windows VM launcher, monitor, and quick controls",
-    "category": "System",
-    "allowMultiple": false,
-    "defaultSection": "right",
-    "defaults": {
-      "autoHide": false,
-      "pollInterval": 4,
-      "defaultLaunchMode": "rdp-keepalive",
-      "sharedFolderPath": "~/Windows"
-    },
-    "schema": [
-      {
-        "key": "autoHide",
-        "type": "boolean",
-        "label": "Auto-hide when stopped",
-        "description": "Hide the widget from the bar when the Windows VM is stopped",
-        "defaultValue": false
-      },
-      {
-        "key": "pollInterval",
-        "type": "number",
-        "label": "Poll Interval (seconds)",
-        "description": "Interval for probing VM state and port availability",
-        "defaultValue": 4
-      },
-      {
-        "key": "defaultLaunchMode",
-        "type": "string",
-        "label": "Default Bar Launch Mode",
-        "description": "Mode when clicking bar widget: rdp-keepalive, rdp, or web",
-        "defaultValue": "rdp-keepalive"
-      },
-      {
-        "key": "sharedFolderPath",
-        "type": "string",
-        "label": "Shared Folder Path",
-        "description": "Host folder path mounted into Windows VM",
-        "defaultValue": "~/Windows"
-      }
-    ]
-  }
+  "keepLoaded": true
 }

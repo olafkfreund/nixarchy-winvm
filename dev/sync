@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# dev/sync - Local developer synchronization & test runner for bol.winvm
-# Copies repo files to ~/.config/omarchy/plugins/io.github.yanuarpmbd.winvm and reloads shell.
+# dev/sync - Local developer synchronization & test runner for winvm
+# Copies the menu-only plugin to ~/.config/omarchy/plugins/nixarchy.winvm.
 # ==============================================================================
 set -euo pipefail
 
-PLUGIN_ID="io.github.yanuarpmbd.winvm"
+PLUGIN_ID="nixarchy.winvm"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/plugins/$PLUGIN_ID"
 
@@ -13,20 +13,22 @@ echo "=== Syncing $PLUGIN_ID to Omarchy Plugins ==="
 
 # 1. Validation
 echo "Validating plugin manifest..."
-omarchy plugin validate "$REPO_DIR"
-
-if command -v qmllint >/dev/null 2>&1; then
-  echo "Checking QML with qmllint..."
-  qmllint -I "${OMARCHY_PATH:-/usr/share/omarchy}/shell" \
-    "$REPO_DIR/BarWidget.qml" "$REPO_DIR/Panel.qml" "$REPO_DIR/WinVmService.qml"
+if command -v devenv >/dev/null 2>&1; then
+  devenv shell -- validate
+else
+  omarchy plugin validate "$REPO_DIR"
+  if command -v qmllint >/dev/null 2>&1; then
+    echo "Checking QML with qmllint..."
+    qmllint -I "${OMARCHY_PATH:-/usr/share/omarchy}/shell" \
+      "$REPO_DIR/Menu.qml" "$REPO_DIR/WinVmService.qml"
+  fi
 fi
 
 # 2. File Sync
 echo "Syncing files to $TARGET_DIR..."
 mkdir -p "$TARGET_DIR"
 cp -f "$REPO_DIR/manifest.json" "$TARGET_DIR/"
-cp -f "$REPO_DIR/BarWidget.qml" "$TARGET_DIR/"
-cp -f "$REPO_DIR/Panel.qml" "$TARGET_DIR/"
+cp -f "$REPO_DIR/Menu.qml" "$TARGET_DIR/"
 cp -f "$REPO_DIR/WinVmService.qml" "$TARGET_DIR/"
 cp -f "$REPO_DIR/winvm-launcher.sh" "$TARGET_DIR/"
 chmod +x "$TARGET_DIR/winvm-launcher.sh"
@@ -39,11 +41,30 @@ cp -f "$REPO_DIR/README.md" "$TARGET_DIR/"
 echo "Rescanning Omarchy plugins..."
 omarchy-shell shell rescanPlugins 2>/dev/null || true
 
-echo "Ensuring plugin is enabled on the right bar section..."
-omarchy plugin enable "$PLUGIN_ID" --section right 2>/dev/null || true
+echo "Waiting for plugin discovery..."
+for _ in {1..20}; do
+  if omarchy plugin list --json 2>/dev/null | jq -e --arg id "$PLUGIN_ID" \
+      'any(.[]; .id == $id)' >/dev/null; then
+    break
+  fi
+  sleep 0.25
+done
 
-# 4. Reload Shell
-echo "Restarting Omarchy shell..."
-omarchy-restart-shell
+if ! omarchy plugin list --json 2>/dev/null | jq -e --arg id "$PLUGIN_ID" \
+    'any(.[]; .id == $id)' >/dev/null; then
+  echo "Plugin was not discovered; refusing to enable or restart the shell." >&2
+  exit 1
+fi
 
-echo "✅ $PLUGIN_ID synced and activated successfully!"
+echo "Enabling menu plugin..."
+omarchy plugin enable "$PLUGIN_ID"
+
+# 4. Reload Shell only when explicitly requested after manual inspection.
+if [[ "${RESTART_SHELL:-0}" == 1 ]]; then
+  echo "Restarting Omarchy shell..."
+  omarchy-restart-shell
+else
+  echo "Plugin synced and enabled; shell restart skipped. Set RESTART_SHELL=1 to reload."
+fi
+
+echo "✅ $PLUGIN_ID synced successfully!"
