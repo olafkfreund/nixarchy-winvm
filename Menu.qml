@@ -62,7 +62,8 @@ Item {
 
   function stateText() {
     if (service.vmState === "running")
-      return service.rdpClientRunning ? "Running · RDP attached" : "Running"
+      return !service.rdpClientRunning ? "Running"
+        : service.backend === "libvirt" ? "Running · console open" : "Running · RDP attached"
     if (service.vmState === "starting") return "Starting Windows VM…"
     if (service.vmState === "stopping") return "Stopping Windows VM…"
     return "Stopped"

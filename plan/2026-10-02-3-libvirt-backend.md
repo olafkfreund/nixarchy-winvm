@@ -67,6 +67,11 @@ for a configured dockur user who declines it. The compose file is the same
 positive every styled `Text` in `Menu.qml` already produces because qmllint
 cannot resolve Omarchy's `Style` singleton in the validate environment.
 
+**Implementation correction (step 7):** the guest test showed the status line
+reading "Running · RDP attached" for libvirt. `stateText()` in `Menu.qml` now
+says "Running · console open" when a `virt-viewer` is attached to a libvirt
+domain; the dockur wording is unchanged.
+
 ## Steps
 
 1. `winvm-launcher.sh`: add the libvirt backend.
