@@ -18,6 +18,12 @@ Item {
   property string statusMessage: ""
   property string lastError: ""
 
+  // Backend chosen by the launcher: "dockur" | "libvirt" | "none" ("" until resolved)
+  property string backend: ""
+  property string domain: ""
+  property string uri: ""
+  property string backendReason: ""
+
   readonly property bool isRunning: vmState === "running"
   readonly property bool isTransitioning: vmState === "starting" || vmState === "stopping"
 
@@ -69,8 +75,41 @@ Item {
     }
   }
 
+  function refreshBackend() {
+    if (!backendProcess.running) {
+      backendProcess.running = true
+    }
+  }
+
+  function handleBackendOutput(output) {
+    try {
+      var data = JSON.parse(output.trim())
+      var changed = root.backend !== String(data.backend || "")
+        || root.domain !== String(data.domain || "")
+        || root.uri !== String(data.uri || "")
+      root.domain = String(data.domain || "")
+      root.uri = String(data.uri || "")
+      root.backendReason = String(data.reason || "")
+      root.backend = String(data.backend || "")
+      if (changed) poll()
+    } catch (e) {
+      // ignore
+    }
+  }
+
   function poll() {
-    if (!probeProcess.running) {
+    if (root.backend === "none") {
+      root.vmState = "stopped"
+      root.statusMessage = ""
+      root.port3389Open = false
+      root.port8006Open = false
+      return
+    }
+    if (root.backend === "libvirt") {
+      if (!domstateProcess.running) {
+        domstateProcess.running = true
+      }
+    } else if (!probeProcess.running) {
       probeProcess.running = true
     }
     if (!rdpCheckProcess.running) {
@@ -113,8 +152,9 @@ Item {
   function stopVm() {
     lastError = ""
     root.vmState = "stopping"
+    root.startingElapsedSecs = 0
     root.statusMessage = "Stopping Windows VM..."
-    Quickshell.execDetached(["omarchy-windows-vm", "stop"])
+    Quickshell.execDetached(["uwsm", "app", "--", launcherScriptPath(), "stop"])
     poll()
   }
 
@@ -185,6 +225,58 @@ Item {
     }
   }
 
+  // libvirt: "virsh domstate" -> vmState
+  function handleDomstate(output) {
+    var s = String(output || "").trim()
+    root.port3389Open = false
+    root.port8006Open = false
+
+    if (s === "running" && root.vmState === "stopping") {
+      // An ACPI shutdown reports "running" for a while; wait before giving up.
+      if (root.startingElapsedSecs > 120) {
+        root.vmState = "running"
+        root.statusMessage = "Shutdown not acknowledged"
+      }
+    } else if (s === "running") {
+      // Keep the timeout notice; it clears on the next state change.
+      if (root.vmState !== "running") root.statusMessage = ""
+      root.vmState = "running"
+    } else if (s === "in shutdown") {
+      root.vmState = "stopping"
+      root.statusMessage = ""
+    } else if (root.vmState === "starting") {
+      if (root.startingElapsedSecs > 180) {
+        root.vmState = "stopped"
+        root.statusMessage = "Startup timed out"
+      }
+    } else {
+      root.vmState = "stopped"
+      root.statusMessage = (s === "shut off" || s === "") ? "" : "Domain state: " + s
+    }
+  }
+
+  Process {
+    id: domstateProcess
+    command: ["virsh", "-c", root.uri, "domstate", root.domain]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        root.handleDomstate(String(text || ""))
+      }
+    }
+  }
+
+  Process {
+    id: backendProcess
+    command: [root.launcherScriptPath(), "backend"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        root.handleBackendOutput(String(text || ""))
+      }
+    }
+  }
+
   // Fast port probing via ss
   Process {
     id: probeProcess
@@ -200,7 +292,7 @@ Item {
   // Process probe for FreeRDP client
   Process {
     id: rdpCheckProcess
-    command: ["pgrep", "-f", "xfreerdp"]
+    command: ["pgrep", "-f", root.backend === "libvirt" ? "virt-viewer .* " + root.domain.replace(/\./g, "\\.") + "$" : "xfreerdp"]
     stdout: StdioCollector { waitForEnd: true }
     onExited: function(code) {
       root.rdpClientRunning = (code === 0)
@@ -210,7 +302,7 @@ Item {
   // Process probe for VM resources & allocations
   Process {
     id: statsProcess
-    command: [root.statsScriptPath()]
+    command: [root.statsScriptPath(), root.backend === "libvirt" ? "-name guest=" + root.domain.replace(/\./g, "\\.") + "," : "process=windows"]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
@@ -227,7 +319,7 @@ Item {
     repeat: true
     triggeredOnStart: true
     onTriggered: {
-      if (root.vmState === "starting") {
+      if (root.vmState === "starting" || root.vmState === "stopping") {
         root.startingElapsedSecs += Math.round(interval / 1000)
       }
       root.poll()
@@ -252,6 +344,7 @@ Item {
   }
 
   Component.onCompleted: {
+    refreshBackend()
     poll()
   }
 }

@@ -115,6 +115,56 @@ The tested VM pins that branch declaratively by adding an `ai-mirror` input to
 Repeat this after a fresh VM install until the fix is merged into the normal
 Nixarchy input.
 
+## libvirt backend test
+
+The libvirt backend is tested against a tiny diskless domain in the guest, so
+no Windows install is needed. Add to the guest's
+`/etc/nixos/hosts/nixarchy-winvm/configuration.nix` (the file's argument list
+must include `pkgs`, e.g. `{ pkgs, ... }:`):
+
+```nix
+virtualisation.libvirtd.enable = true;
+programs.virt-manager.enable = true;
+environment.systemPackages = [ pkgs.virt-viewer ];
+users.users."demo".extraGroups = [ "libvirtd" ];
+```
+
+`programs.virt-manager` does not install `virt-viewer`, hence the explicit
+package. Apply it with the same guest rebuild as the SSH change above, then
+reboot the guest: the running Hyprland session and Quickshell only gain the
+`libvirtd` group at the next login. Define the test domain (64 MiB, no disk,
+VNC, Windows 11 libosinfo tag, `type='qemu'` so no nested KVM is needed):
+
+```xml
+<domain type='qemu'>
+  <name>wintest</name>
+  <metadata>
+    <libosinfo:libosinfo xmlns:libosinfo="http://libosinfo.org/xmlns/libvirt/domain/1.0">
+      <libosinfo:os id="http://microsoft.com/win/11"/>
+    </libosinfo:libosinfo>
+  </metadata>
+  <memory unit='MiB'>64</memory>
+  <vcpu>1</vcpu>
+  <os><type arch='x86_64' machine='q35'>hvm</type></os>
+  <features><acpi/></features>
+  <devices>
+    <graphics type='vnc' autoport='yes' listen='127.0.0.1'/>
+    <video><model type='vga'/></video>
+  </devices>
+</domain>
+```
+
+```sh
+virsh -c qemu:///system define wintest.xml
+~/.config/omarchy/plugins/nixarchy.winvm/winvm-launcher.sh backend
+```
+
+The domain has no OS, so it ignores the ACPI request from `S`/`A`; confirm
+"Domain 'wintest' is being shutdown" in `~/.cache/winvm-freerdp.log` and use
+`virsh destroy wintest` to reset it. On NixOS the viewer's process name is
+`.virt-viewer-wr`, so `pkill -x virt-viewer` finds nothing; match the command
+line (`pgrep -f '^virt-viewer --connect'`).
+
 ## Reusable plugin install flow
 
 Prefer SSH/SCP for the plugin files. From the repository root, use:

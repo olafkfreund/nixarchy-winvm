@@ -192,8 +192,157 @@ run_freerdp() {
   return $rdp_status
 }
 
+# Helper: read and validate DOMAIN/URI from libvirt.conf into DOMAIN, URI, CONF_NOTE.
+# Invalid values are ignored; CONF_NOTE gets a fixed string naming the key.
+read_libvirt_conf() {
+  DOMAIN=""
+  URI="qemu:///system"
+  CONF_NOTE=""
+  local conf="${XDG_CONFIG_HOME:-$HOME/.config}/windows/libvirt.conf"
+  [[ -f "$conf" ]] || return 0
+
+  local d u
+  d=$(grep -E '^DOMAIN=' "$conf" | head -n1 | cut -d= -f2- | tr -d '\r\n' || true)
+  u=$(grep -E '^URI=' "$conf" | head -n1 | cut -d= -f2- | tr -d '\r\n' || true)
+
+  if [[ -n "$d" ]]; then
+    if [[ "$d" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,63}$ ]]; then
+      DOMAIN="$d"
+    else
+      CONF_NOTE="invalid DOMAIN in libvirt.conf ignored; "
+    fi
+  fi
+  if [[ -n "$u" ]]; then
+    if [[ "$u" == "qemu:///system" || "$u" == "qemu:///session" ]]; then
+      URI="$u"
+    else
+      CONF_NOTE="${CONF_NOTE}invalid URI in libvirt.conf ignored; "
+    fi
+  fi
+}
+
+# Helper: choose the backend. Sets BACKEND (dockur|libvirt|none), DOMAIN, URI, REASON.
+resolve_backend() {
+  BACKEND="none"
+  REASON=""
+  read_libvirt_conf
+
+  # Same "configured" test omarchy-windows-vm makes first. Its `status` runs a
+  # privileged query and a compose migration, so it must not be used as a probe.
+  if command -v omarchy-windows-vm >/dev/null 2>&1 && {
+    [[ -f "${OMARCHY_WINDOWS_DIR:-/var/lib/omarchy/windows}/docker-compose.yml" ]] ||
+      [[ -f "$HOME/.config/windows/docker-compose.yml" ]]
+  }; then
+    BACKEND="dockur"
+    DOMAIN=""
+    return 0
+  fi
+
+  if ! command -v virsh >/dev/null 2>&1; then
+    DOMAIN=""
+    REASON="${CONF_NOTE}No Windows VM configured and virsh not found"
+    return 0
+  fi
+
+  # Configured domain, if it exists
+  if [[ -n "$DOMAIN" ]]; then
+    if virsh -c "$URI" dominfo "$DOMAIN" >/dev/null 2>&1; then
+      BACKEND="libvirt"
+      return 0
+    fi
+    CONF_NOTE="${CONF_NOTE}configured domain not found; "
+    DOMAIN=""
+  fi
+
+  # Auto-detect: exactly one domain tagged as a Windows guest in libosinfo
+  local names name xml
+  local -a found=()
+  names=$(virsh -c "$URI" list --all --name 2>/dev/null || true)
+  while IFS= read -r name; do
+    [[ "$name" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,63}$ ]] || continue
+    xml=$(virsh -c "$URI" dumpxml "$name" 2>/dev/null || true)
+    if [[ "$xml" == *'libosinfo:os id="http://microsoft.com/win/'* ]]; then
+      found+=("$name")
+    fi
+  done <<< "$names"
+
+  if ((${#found[@]} == 1)); then
+    BACKEND="libvirt"
+    DOMAIN="${found[0]}"
+  elif ((${#found[@]} == 0)); then
+    REASON="${CONF_NOTE}No Windows VM found in libvirt"
+  else
+    REASON="${CONF_NOTE}Several Windows VMs found; set DOMAIN in libvirt.conf"
+  fi
+}
+
+# Helper: print the resolved backend as one JSON line (values are validated, no escaping needed)
+print_backend() {
+  case "$BACKEND" in
+    libvirt) printf '{"backend":"libvirt","domain":"%s","uri":"%s"}\n' "$DOMAIN" "$URI" ;;
+    dockur) printf '{"backend":"dockur"}\n' ;;
+    *) printf '{"backend":"none","reason":"%s"}\n' "$REASON" ;;
+  esac
+}
+
+# Helper: open the libvirt domain in virt-viewer; $1=1 shuts it down afterwards
+libvirt_open() {
+  local autostop="${1:-0}"
+  if ! command -v virt-viewer >/dev/null 2>&1; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: virt-viewer not found." >> "$LOG_FILE"
+    notify-send -u critical "Windows VM" "virt-viewer is not installed; cannot open $DOMAIN."
+    return 1
+  fi
+
+  # Already open for this domain: do not stack a second viewer
+  if pgrep -f "^virt-viewer --connect .* ${DOMAIN//./\\.}\$" >/dev/null 2>&1; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] virt-viewer already open for $DOMAIN." >> "$LOG_FILE"
+    return 0
+  fi
+
+  local state
+  state=$(virsh -c "$URI" domstate "$DOMAIN" 2>/dev/null || true)
+  if [[ "$state" == "shut off" ]]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting libvirt domain $DOMAIN..." >> "$LOG_FILE"
+    if ! virsh -c "$URI" start "$DOMAIN" >> "$LOG_FILE" 2>&1; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: virsh start $DOMAIN failed." >> "$LOG_FILE"
+      notify-send -u critical "Windows VM" "Could not start $DOMAIN (see $LOG_FILE)"
+      return 1
+    fi
+  fi
+
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Opening virt-viewer for $DOMAIN..." >> "$LOG_FILE"
+  virt-viewer --connect "$URI" --attach --wait "$DOMAIN" >> "$LOG_FILE" 2>&1 || true
+
+  if [[ "$autostop" == "1" ]]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] virt-viewer closed in auto-stop mode, shutting down $DOMAIN..." >> "$LOG_FILE"
+    virsh -c "$URI" shutdown "$DOMAIN" >> "$LOG_FILE" 2>&1 || true
+  fi
+}
+
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  resolve_backend
+
+  if [[ "$MODE" == "backend" ]]; then
+    print_backend
+    exit 0
+  fi
+
+  if [[ "$BACKEND" == "libvirt" ]]; then
+    case "$MODE" in
+      attach|rdp-keepalive) libvirt_open 0 ;;
+      rdp-autostop) libvirt_open 1 ;;
+      stop) virsh -c "$URI" shutdown "$DOMAIN" >> "$LOG_FILE" 2>&1 || true ;;
+    esac
+    exit 0
+  fi
+
   case "$MODE" in
+    stop)
+      omarchy-windows-vm stop >> "$LOG_FILE" 2>&1 || true
+      exit 0
+      ;;
+
     web)
       xdg-open "http://127.0.0.1:8006" &
       exit 0

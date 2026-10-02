@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# Checks winvm-launcher.sh backend resolution against stub omarchy-windows-vm/virsh.
+set -euo pipefail
+
+repo=$(cd "$(dirname "$0")/.." && pwd)
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+mkdir -p "$tmp/bin" "$tmp/real" "$tmp/c/windows" "$tmp/owv"
+
+# Real tools the launcher needs; virsh and omarchy-windows-vm are deliberately absent.
+for t in mkdir dirname ls grep head cut tr date; do
+  ln -s "$(command -v "$t")" "$tmp/real/$t"
+done
+
+{ echo "#!$(command -v bash)"; cat <<'EOS'
+# Env: VIRSH_LIST, VIRSH_WIN, VIRSH_KNOWN are space-separated domain names.
+has() { [[ " $1 " == *" $2 "* ]]; }
+case "$2" in qemu:///system|qemu:///session) ;; *) exit 1 ;; esac
+case "$3" in
+  list) for n in $VIRSH_LIST; do echo "$n"; done; echo ;;
+  dumpxml) has "$VIRSH_WIN" "$4" && echo '<libosinfo:os id="http://microsoft.com/win/11"/>' || echo '<domain/>' ;;
+  dominfo) has "$VIRSH_KNOWN" "$4" ;;
+esac
+EOS
+} > "$tmp/virsh"
+printf '#!/bin/sh\nexit 0\n' > "$tmp/omarchy-windows-vm"
+chmod +x "$tmp/virsh" "$tmp/omarchy-windows-vm"
+
+# check NAME EXPECTED_JSON — setup is done by the caller via env/files; runs in a subshell.
+check() {
+  local name=$1 want=$2 got
+  got=$(
+    export HOME="$tmp" XDG_CONFIG_HOME="$tmp/c" XDG_CACHE_HOME="$tmp/k"
+    export OMARCHY_WINDOWS_DIR="$tmp/owv"
+    export PATH="$tmp/bin:$tmp/real"
+    # shellcheck source=/dev/null
+    source "$repo/winvm-launcher.sh"
+    resolve_backend
+    print_backend
+  )
+  if [[ "$got" != "$want" ]]; then
+    printf 'FAIL %s\n  expected: %s\n  actual:   %s\n' "$name" "$want" "$got" >&2
+    exit 1
+  fi
+  printf 'ok   %s\n' "$name"
+}
+
+reset() {
+  rm -f "$tmp/bin/"* "$tmp/owv/docker-compose.yml" "$tmp/c/windows/libvirt.conf"
+  export VIRSH_LIST="" VIRSH_WIN="" VIRSH_KNOWN=""
+}
+with_virsh() { ln -sf "$tmp/virsh" "$tmp/bin/virsh"; }
+with_owv() { ln -sf "$tmp/omarchy-windows-vm" "$tmp/bin/omarchy-windows-vm"; }
+conf() { printf '%s\n' "$@" > "$tmp/c/windows/libvirt.conf"; }
+sys='"uri":"qemu:///system"'
+
+reset; with_owv; with_virsh; touch "$tmp/owv/docker-compose.yml"
+check "dockur configured" '{"backend":"dockur"}'
+
+reset; with_owv
+check "dockur stub without compose file, no virsh -> none" \
+  '{"backend":"none","reason":"No Windows VM configured and virsh not found"}'
+
+reset; with_virsh; VIRSH_LIST="win11 linux"; VIRSH_KNOWN="win11 linux"; conf DOMAIN=linux
+check "libvirt via libvirt.conf" "{\"backend\":\"libvirt\",\"domain\":\"linux\",$sys}"
+
+reset; with_virsh; VIRSH_LIST="win11 linux"; VIRSH_WIN="win11"; VIRSH_KNOWN="win11 linux"
+check "libvirt auto-detected" "{\"backend\":\"libvirt\",\"domain\":\"win11\",$sys}"
+
+reset; with_virsh; VIRSH_LIST="win10 win11"; VIRSH_WIN="win10 win11"
+check "ambiguous -> none" \
+  '{"backend":"none","reason":"Several Windows VMs found; set DOMAIN in libvirt.conf"}'
+
+reset; with_virsh; VIRSH_LIST="win11"; VIRSH_WIN="win11"; VIRSH_KNOWN="win11 a;b"; conf 'DOMAIN=a;b'
+check "invalid DOMAIN ignored" "{\"backend\":\"libvirt\",\"domain\":\"win11\",$sys}"
+
+reset; with_virsh; VIRSH_LIST="win11"; VIRSH_WIN="win11"; VIRSH_KNOWN="win11 -x"; conf DOMAIN=-x
+check "leading-dash DOMAIN ignored" "{\"backend\":\"libvirt\",\"domain\":\"win11\",$sys}"
+
+reset; with_virsh; VIRSH_LIST="win11"; VIRSH_KNOWN="win11"; conf DOMAIN=win11 'URI=qemu+ssh://evil/system'
+check "invalid URI -> default" "{\"backend\":\"libvirt\",\"domain\":\"win11\",$sys}"
+
+reset; with_virsh; VIRSH_LIST="win11"; VIRSH_KNOWN="win11"; conf DOMAIN=win11 URI=qemu:///session
+check "session URI accepted" '{"backend":"libvirt","domain":"win11","uri":"qemu:///session"}'
+
+reset
+check "no virsh -> none" \
+  '{"backend":"none","reason":"No Windows VM configured and virsh not found"}'
+
+echo "all launcher checks passed"
