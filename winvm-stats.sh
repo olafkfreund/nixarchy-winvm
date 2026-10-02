@@ -6,8 +6,16 @@
 set -euo pipefail
 
 IMG_PATH="${HOME}/.windows/data.img"
+# ponytail: the caller picks the QEMU match: dockur (qemus) runs "-name Windows,process=windows"
+# (default), libvirt passes "-name guest=DOMAIN,"; either way other host VMs are skipped.
+pattern="${1:-process=windows}"
 SPECS_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/winvm-specs.json"
 LEGACY_SPECS_CACHE="${XDG_CONFIG_HOME:-$HOME/.config}/windows/vm-specs.json"
+if [[ "$pattern" != "process=windows" ]]; then
+  # One cache per VM so dockur and libvirt allocations never mix.
+  SPECS_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/winvm-specs-${pattern//[^A-Za-z0-9._-]/_}.json"
+  LEGACY_SPECS_CACHE=""
+fi
 
 alloc_disk="128 GB"
 host_disk="0 GB"
@@ -28,33 +36,32 @@ if [[ -f "$SPECS_CACHE" ]]; then
   [[ -n "$r" ]] && alloc_ram="$r"
   c=$(grep -oP '"allocated_cores":\s*\K[0-9]+' "$SPECS_CACHE" 2>/dev/null || true)
   [[ -n "$c" ]] && alloc_cores="$c"
-elif [[ -f "$LEGACY_SPECS_CACHE" ]]; then
+elif [[ -n "$LEGACY_SPECS_CACHE" && -f "$LEGACY_SPECS_CACHE" ]]; then
   r=$(grep -oP '"allocated_ram":\s*"\K[^"]+' "$LEGACY_SPECS_CACHE" 2>/dev/null || true)
   [[ -n "$r" ]] && alloc_ram="$r"
   c=$(grep -oP '"allocated_cores":\s*\K[0-9]+' "$LEGACY_SPECS_CACHE" 2>/dev/null || true)
   [[ -n "$c" ]] && alloc_cores="$c"
 fi
 
-if [[ "$alloc_ram" =~ ^([0-9]+)G$ ]]; then
-  alloc_ram="${BASH_REMATCH[1]} GB"
-fi
+# QEMU "-m" value -> "N GB": dockur passes "8G", libvirt "size=<KiB>k[,...]"
+norm_ram() {
+  if [[ "$1" =~ ^([0-9]+)G$ ]]; then
+    echo "${BASH_REMATCH[1]} GB"
+  elif [[ "$1" =~ ^size=([0-9]+)k ]]; then
+    awk -v k="${BASH_REMATCH[1]}" 'BEGIN { printf "%.1f GB\n", k / 1048576 }'
+  else
+    echo "$1"
+  fi
+}
+alloc_ram=$(norm_ram "$alloc_ram")
 
-# ponytail: the caller picks the QEMU match: dockur (qemus) runs "-name Windows,process=windows"
-# (default), libvirt passes "-name guest=DOMAIN,"; either way other host VMs are skipped.
-pattern="${1:-process=windows}"
 pid=$(pgrep -f "qemu-system-x86_64.*$pattern" | head -n1 || true)
 
 if [[ -n "$pid" && -d "/proc/$pid" ]]; then
   cmd=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)
   
   ram_match=$(echo "$cmd" | grep -oP "(?<=-m )\S+" || true)
-  if [[ -n "$ram_match" ]]; then
-    if [[ "$ram_match" =~ ^([0-9]+)G$ ]]; then
-      alloc_ram="${BASH_REMATCH[1]} GB"
-    else
-      alloc_ram="$ram_match"
-    fi
-  fi
+  [[ -n "$ram_match" ]] && alloc_ram=$(norm_ram "$ram_match")
   
   smp_match=$(echo "$cmd" | grep -oP "(?<=-smp )[0-9]+" || true)
   [[ -n "$smp_match" ]] && alloc_cores="$smp_match"

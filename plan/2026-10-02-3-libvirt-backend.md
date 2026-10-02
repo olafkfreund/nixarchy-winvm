@@ -86,6 +86,21 @@ domain; the dockur wording is unchanged.
   returns to running with "Shutdown not acknowledged", which stays until the
   next state change.
 
+**Correction (host test, user-directed):** the text-only menu is replaced by
+the original bar panel's layout (header with status pill, status banner,
+endpoints box, resources box with CPU/memory bars, icon Quick Actions), as
+the user asked. It supersedes the earlier "text-only" decision and the single
+stats caption. It is backend-aware: libvirt shows domain and console rows,
+hides the Web Console and Shared Folder buttons and the dockur-only disk
+row; backend `none` shows only the reason banner. Buttons call the same
+`run()` as the keys. Status-dot green/amber stay literal (the theme has no
+such tokens). The content scrolls when a short screen caps the card.
+`winvm-stats.sh` normalises libvirt's `-m size=<KiB>k` to GB and keeps one
+specs cache per VM, so dockur and libvirt allocations never mix. CPU is
+shown as a share of the allocated vCPUs. qmllint: 57 warnings, all
+`Style`/`Color` singleton members qmllint cannot resolve, plus the two
+pre-existing ones.
+
 ## Steps
 
 1. `winvm-launcher.sh`: add the libvirt backend.
@@ -204,7 +219,7 @@ and a fresh Opus agent reviews `git diff` against this plan.
 ## Tests
 
 ```sh
-devenv shell -- validate          # omarchy validate, qmllint (≤19 warnings), bash -n, py_compile, dev/test-launcher
+devenv shell -- validate          # omarchy validate, qmllint (≤57 warnings, all singleton false positives), bash -n, py_compile, dev/test-launcher
 bash winvm-stats.sh               # "running":false with no VM
 bash winvm-stats.sh '-name guest=win11,'
 ```
