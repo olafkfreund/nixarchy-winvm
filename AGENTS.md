@@ -24,7 +24,8 @@ long-running Quickshell process.
 
 The menu is driven without a mouse. Keep the existing single-key actions
 stable: `L` attach/launch keep-alive, `A` launch auto-stop, `W` web console,
-`F` shared folder, `S` stop, `R` refresh, and `Esc` close. Do not make a
+`F` shared folder, `S` stop, `R` refresh, and `Esc` close. `W` and `F` apply
+to the dockur backend only and are ignored for libvirt. Do not make a
 background polling action steal focus.
 
 ## Validation
@@ -35,7 +36,8 @@ Run the smallest applicable checks before handoff:
 omarchy plugin validate .
 qmllint -I "${OMARCHY_PATH:-/usr/share/omarchy}/shell" \
   Menu.qml WinVmService.qml
-bash -n winvm-launcher.sh winvm-stats.sh dev/sync
+bash -n winvm-launcher.sh winvm-stats.sh dev/sync dev/test-launcher
+bash dev/test-launcher
 ```
 
 These tools are provided by the project environment. Use `devenv shell` or

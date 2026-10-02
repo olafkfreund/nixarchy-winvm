@@ -45,6 +45,38 @@ RESTART_SHELL=1 ./dev/sync
 | <kbd>R</kbd> | Refresh status |
 | <kbd>Esc</kbd> | Close the menu |
 
+## libvirt/KVM
+
+Besides the containerized VM, the plugin can control a libvirt/KVM Windows
+domain. The launcher picks the backend in this order:
+
+1. dockur, if `omarchy-windows-vm` is on `PATH` and its `docker-compose.yml`
+   exists (`/var/lib/omarchy/windows` or `~/.config/windows`);
+2. the `DOMAIN` from `~/.config/windows/libvirt.conf`, if `virsh dominfo`
+   finds it;
+3. the single domain that libosinfo tags as Windows (virt-manager does this).
+   Zero or several matches show a message in the menu and nothing runs.
+
+```ini
+# ~/.config/windows/libvirt.conf (both keys optional; no inline comments)
+# DOMAIN: letters, digits, . _ - (max 64)
+DOMAIN=win11
+# URI: qemu:///system (default) or qemu:///session
+URI=qemu:///system
+```
+
+Invalid values are ignored. For libvirt, <kbd>L</kbd> starts the domain if
+needed and opens `virt-viewer`, <kbd>A</kbd> shuts the domain down when the
+viewer closes, and <kbd>S</kbd> requests a graceful shutdown (never a forced
+power-off). <kbd>W</kbd> and <kbd>F</kbd> are dockur-only and ignored.
+
+Requires `virsh` and `virt-viewer`, plus libvirt access (the `libvirtd` group
+for `qemu:///system`). Check what was detected with:
+
+```bash
+./winvm-launcher.sh backend
+```
+
 ## Validation
 
 With devenv:
@@ -67,7 +99,8 @@ shell-only fallback.
 ```bash
 omarchy plugin validate .
 qmllint -I "${OMARCHY_PATH:-/usr/share/omarchy}/shell" Menu.qml WinVmService.qml
-bash -n winvm-launcher.sh winvm-stats.sh dev/sync
+bash -n winvm-launcher.sh winvm-stats.sh dev/sync dev/test-launcher
+bash dev/test-launcher
 ```
 
 For the complete disposable VM installation and UI-testing workflow, see
