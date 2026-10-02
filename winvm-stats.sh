@@ -39,8 +39,10 @@ if [[ "$alloc_ram" =~ ^([0-9]+)G$ ]]; then
   alloc_ram="${BASH_REMATCH[1]} GB"
 fi
 
-# ponytail: dockur (qemus) starts QEMU with "-name Windows,process=windows"; skips other host VMs.
-pid=$(pgrep -f "qemu-system-x86_64.*process=windows" | head -n1 || true)
+# ponytail: the caller picks the QEMU match: dockur (qemus) runs "-name Windows,process=windows"
+# (default), libvirt passes "-name guest=DOMAIN,"; either way other host VMs are skipped.
+pattern="${1:-process=windows}"
+pid=$(pgrep -f "qemu-system-x86_64.*$pattern" | head -n1 || true)
 
 if [[ -n "$pid" && -d "/proc/$pid" ]]; then
   cmd=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)
