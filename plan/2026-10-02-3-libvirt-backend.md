@@ -61,6 +61,12 @@ rewrite files, show a sudo/polkit prompt on every backend refresh, and exit 1
 for a configured dockur user who declines it. The compose file is the same
 "configured" test `omarchy-windows-vm` makes first.
 
+**Implementation deviation (step 5):** the qmllint baseline rises from 17 to
+19 warnings. The two new ones are the stats caption's `Style.font.family` and
+`Style.font.caption` (`Member … not found on type "QObject"`), the same false
+positive every styled `Text` in `Menu.qml` already produces because qmllint
+cannot resolve Omarchy's `Style` singleton in the validate environment.
+
 ## Steps
 
 1. `winvm-launcher.sh`: add the libvirt backend.
@@ -179,7 +185,7 @@ and a fresh Opus agent reviews `git diff` against this plan.
 ## Tests
 
 ```sh
-devenv shell -- validate          # omarchy validate, qmllint (≤17 warnings), bash -n, py_compile, dev/test-launcher
+devenv shell -- validate          # omarchy validate, qmllint (≤19 warnings), bash -n, py_compile, dev/test-launcher
 bash winvm-stats.sh               # "running":false with no VM
 bash winvm-stats.sh '-name guest=win11,'
 ```

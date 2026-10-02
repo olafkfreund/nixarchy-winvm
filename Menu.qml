@@ -43,7 +43,10 @@ Item {
   function toggle() { if (opened) close(); else open("{}") }
 
   function run(key) {
-    switch (key.toUpperCase()) {
+    var k = key.toUpperCase()
+    if (service.backend === "none" && k !== "R") return
+    if (service.backend === "libvirt" && (k === "W" || k === "F")) return
+    switch (k) {
     case "L":
       if (service.vmState === "running") service.attachRdp()
       else service.launchVm("rdp-keepalive")
@@ -53,7 +56,7 @@ Item {
     case "W": service.openWebConsole(); close(); break
     case "F": service.openSharedFolder(); close(); break
     case "S": service.stopVm(); break
-    case "R": service.poll(); break
+    case "R": service.refreshBackend(); service.poll(); break
     }
   }
 
@@ -141,8 +144,21 @@ Item {
           }
 
           Text {
-            text: "RDP 3389: " + (service.port3389Open ? "active" : "offline")
-                + "   Web 8006: " + (service.port8006Open ? "active" : "offline")
+            text: service.backend === "libvirt" ? "libvirt · " + service.domain
+                : service.backend === "none" ? service.backendReason
+                : "RDP 3389: " + (service.port3389Open ? "active" : "offline")
+                  + "   Web 8006: " + (service.port8006Open ? "active" : "offline")
+            color: root.dim
+            font.family: Style.font.family
+            font.pixelSize: Style.font.caption
+            wrapMode: Text.Wrap
+            width: parent.width
+          }
+
+          Text {
+            visible: service.isRunning
+            text: service.allocatedCores + " vCPU · " + service.memUsageGb.toFixed(1)
+                + " GB · " + service.cpuUsagePct.toFixed(0) + "% CPU"
             color: root.dim
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
@@ -159,9 +175,13 @@ Item {
           }
 
           Text {
-            text: "[L] " + (service.vmState === "running" ? "Attach FreeRDP" : "Launch Windows VM")
-                + "    [A] Auto-stop    [W] Web console\n"
-                + "[F] Shared folder    [S] Stop VM    [R] Refresh    [Esc] Close"
+            text: service.backend === "none" ? "[R] Refresh    [Esc] Close"
+                : service.backend === "libvirt"
+                  ? "[L] " + (service.vmState === "running" ? "Open console" : "Start Windows VM")
+                    + "    [A] Auto-stop    [S] Shut down\n[R] Refresh    [Esc] Close"
+                : "[L] " + (service.vmState === "running" ? "Attach FreeRDP" : "Launch Windows VM")
+                    + "    [A] Auto-stop    [W] Web console\n"
+                    + "[F] Shared folder    [S] Stop VM    [R] Refresh    [Esc] Close"
             color: root.foreground
             font.family: Style.font.family
             font.pixelSize: Style.font.body
