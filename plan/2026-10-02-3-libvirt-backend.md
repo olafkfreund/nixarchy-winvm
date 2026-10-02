@@ -72,6 +72,20 @@ reading "Running · RDP attached" for libvirt. `stateText()` in `Menu.qml` now
 says "Running · console open" when a `virt-viewer` is attached to a libvirt
 domain; the dockur wording is unchanged.
 
+**Review fixes (after steps 1–6, verified in the guest):**
+- `libvirt_open`: a failed `virsh start` logs, notifies and returns 1
+  instead of leaving `virt-viewer --wait` waiting.
+- `libvirt_open`: if a viewer for the domain is already open, it returns
+  without opening another (covers `L` and `A`).
+- DOMAIN must start with a letter, digit or `_`
+  (`^[A-Za-z0-9_][A-Za-z0-9._-]{0,63}$`), so a name cannot reach `virsh` as an
+  option; `dev/test-launcher` covers it.
+- QML `pgrep` patterns escape dots in the domain and anchor its left side.
+- libvirt state: while stopping, a `running` domstate keeps "stopping" for
+  up to 120 s (Windows reports `running` during an ACPI shutdown), then
+  returns to running with "Shutdown not acknowledged", which stays until the
+  next state change.
+
 ## Steps
 
 1. `winvm-launcher.sh`: add the libvirt backend.

@@ -206,7 +206,7 @@ read_libvirt_conf() {
   u=$(grep -E '^URI=' "$conf" | head -n1 | cut -d= -f2- | tr -d '\r\n' || true)
 
   if [[ -n "$d" ]]; then
-    if [[ "$d" =~ ^[A-Za-z0-9._-]{1,64}$ ]]; then
+    if [[ "$d" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,63}$ ]]; then
       DOMAIN="$d"
     else
       CONF_NOTE="invalid DOMAIN in libvirt.conf ignored; "
@@ -259,7 +259,7 @@ resolve_backend() {
   local -a found=()
   names=$(virsh -c "$URI" list --all --name 2>/dev/null || true)
   while IFS= read -r name; do
-    [[ "$name" =~ ^[A-Za-z0-9._-]{1,64}$ ]] || continue
+    [[ "$name" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,63}$ ]] || continue
     xml=$(virsh -c "$URI" dumpxml "$name" 2>/dev/null || true)
     if [[ "$xml" == *'libosinfo:os id="http://microsoft.com/win/'* ]]; then
       found+=("$name")
@@ -294,11 +294,21 @@ libvirt_open() {
     return 1
   fi
 
+  # Already open for this domain: do not stack a second viewer
+  if pgrep -f "^virt-viewer --connect .* ${DOMAIN//./\\.}\$" >/dev/null 2>&1; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] virt-viewer already open for $DOMAIN." >> "$LOG_FILE"
+    return 0
+  fi
+
   local state
   state=$(virsh -c "$URI" domstate "$DOMAIN" 2>/dev/null || true)
   if [[ "$state" == "shut off" ]]; then
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting libvirt domain $DOMAIN..." >> "$LOG_FILE"
-    virsh -c "$URI" start "$DOMAIN" >> "$LOG_FILE" 2>&1 || true
+    if ! virsh -c "$URI" start "$DOMAIN" >> "$LOG_FILE" 2>&1; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: virsh start $DOMAIN failed." >> "$LOG_FILE"
+      notify-send -u critical "Windows VM" "Could not start $DOMAIN (see $LOG_FILE)"
+      return 1
+    fi
   fi
 
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Opening virt-viewer for $DOMAIN..." >> "$LOG_FILE"

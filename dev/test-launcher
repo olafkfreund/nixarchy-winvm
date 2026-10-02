@@ -74,6 +74,9 @@ check "ambiguous -> none" \
 reset; with_virsh; VIRSH_LIST="win11"; VIRSH_WIN="win11"; VIRSH_KNOWN="win11 a;b"; conf 'DOMAIN=a;b'
 check "invalid DOMAIN ignored" "{\"backend\":\"libvirt\",\"domain\":\"win11\",$sys}"
 
+reset; with_virsh; VIRSH_LIST="win11"; VIRSH_WIN="win11"; VIRSH_KNOWN="win11 -x"; conf DOMAIN=-x
+check "leading-dash DOMAIN ignored" "{\"backend\":\"libvirt\",\"domain\":\"win11\",$sys}"
+
 reset; with_virsh; VIRSH_LIST="win11"; VIRSH_KNOWN="win11"; conf DOMAIN=win11 'URI=qemu+ssh://evil/system'
 check "invalid URI -> default" "{\"backend\":\"libvirt\",\"domain\":\"win11\",$sys}"
 

@@ -152,6 +152,7 @@ Item {
   function stopVm() {
     lastError = ""
     root.vmState = "stopping"
+    root.startingElapsedSecs = 0
     root.statusMessage = "Stopping Windows VM..."
     Quickshell.execDetached(["uwsm", "app", "--", launcherScriptPath(), "stop"])
     poll()
@@ -230,9 +231,16 @@ Item {
     root.port3389Open = false
     root.port8006Open = false
 
-    if (s === "running") {
+    if (s === "running" && root.vmState === "stopping") {
+      // An ACPI shutdown reports "running" for a while; wait before giving up.
+      if (root.startingElapsedSecs > 120) {
+        root.vmState = "running"
+        root.statusMessage = "Shutdown not acknowledged"
+      }
+    } else if (s === "running") {
+      // Keep the timeout notice; it clears on the next state change.
+      if (root.vmState !== "running") root.statusMessage = ""
       root.vmState = "running"
-      root.statusMessage = ""
     } else if (s === "in shutdown") {
       root.vmState = "stopping"
       root.statusMessage = ""
@@ -284,7 +292,7 @@ Item {
   // Process probe for FreeRDP client
   Process {
     id: rdpCheckProcess
-    command: ["pgrep", "-f", root.backend === "libvirt" ? "virt-viewer .*" + root.domain + "$" : "xfreerdp"]
+    command: ["pgrep", "-f", root.backend === "libvirt" ? "virt-viewer .* " + root.domain.replace(/\./g, "\\.") + "$" : "xfreerdp"]
     stdout: StdioCollector { waitForEnd: true }
     onExited: function(code) {
       root.rdpClientRunning = (code === 0)
@@ -294,7 +302,7 @@ Item {
   // Process probe for VM resources & allocations
   Process {
     id: statsProcess
-    command: [root.statsScriptPath(), root.backend === "libvirt" ? "-name guest=" + root.domain + "," : "process=windows"]
+    command: [root.statsScriptPath(), root.backend === "libvirt" ? "-name guest=" + root.domain.replace(/\./g, "\\.") + "," : "process=windows"]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
@@ -311,7 +319,7 @@ Item {
     repeat: true
     triggeredOnStart: true
     onTriggered: {
-      if (root.vmState === "starting") {
+      if (root.vmState === "starting" || root.vmState === "stopping") {
         root.startingElapsedSecs += Math.round(interval / 1000)
       }
       root.poll()
