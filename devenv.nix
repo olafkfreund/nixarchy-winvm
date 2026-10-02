@@ -24,7 +24,8 @@
       -I "$quickshell_import_path" \
       -I "''${OMARCHY_PATH:-/usr/share/omarchy}/shell" \
       "$plugin_dir/Menu.qml" "$plugin_dir/WinVmService.qml"
-    bash -n winvm-launcher.sh winvm-stats.sh dev/sync
+    bash -n winvm-launcher.sh winvm-stats.sh dev/sync dev/test-launcher
+    bash dev/test-launcher
     python3 -m py_compile dev/vm-qmp.py
   '';
 
