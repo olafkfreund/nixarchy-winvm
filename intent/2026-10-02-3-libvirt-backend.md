@@ -1,5 +1,5 @@
 ---
-status: draft
+status: approved
 issue: 3
 author: olafkfreund
 ---
@@ -66,6 +66,8 @@ Dockur users see no change in behaviour.
   test happens on the host after that (AGENTS.md).
 
 ## Open questions
+
+Resolved at approval (2026-10-02): every suggested answer below is accepted.
 
 1. **Backend selection:** auto-detect (use dockur if `omarchy-windows-vm` is
    configured, otherwise a libvirt domain), or an explicit setting? Suggested:
