@@ -1,5 +1,5 @@
 ---
-status: draft
+status: approved
 issue: 3
 spec: spec/2026-10-02-3-libvirt-backend.md
 ---
@@ -48,10 +48,10 @@ Line numbers are from commit `267703f`.
   `[Esc]` only.
 - Docs: README "libvirt/KVM" section; AGENTS.md notes `W`/`F` are dockur-only.
 
-**Planner addition, needs approval:** the current `Menu.qml` displays no
+**Planner addition, approved 2026-10-02:** the current `Menu.qml` displays no
 stats at all, yet the intent promises "basic stats". Step 5 adds one caption
 line while running, for both backends: `N vCPU · X.X GB · Y% CPU`. Drop it
-from step 5 if not wanted.
+was kept at approval.
 
 ## Steps
 
