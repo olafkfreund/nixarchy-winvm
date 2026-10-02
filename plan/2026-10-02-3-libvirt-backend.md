@@ -50,7 +50,7 @@ Line numbers are from commit `267703f`.
 
 **Planner addition, approved 2026-10-02:** the current `Menu.qml` displays no
 stats at all, yet the intent promises "basic stats". Step 5 adds one caption
-line while running, for both backends: `N vCPU · X.X GB · Y% CPU`. Drop it
+line while running, for both backends: `N vCPU · X.X GB · Y% CPU`. It
 was kept at approval.
 
 ## Steps
