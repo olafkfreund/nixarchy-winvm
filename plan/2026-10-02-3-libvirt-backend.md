@@ -14,8 +14,9 @@ Line numbers are from commit `267703f`.
 - Two backends: `dockur` (existing, unchanged behaviour) and `libvirt`.
   `winvm-launcher.sh` owns backend choice and every VM command; QML only asks
   it and renders.
-- Resolution order: dockur if `omarchy-windows-vm status` exits 0 (exits 1
-  when not configured); else libvirt if `virsh` exists and a domain is found;
+- Resolution order: dockur if `omarchy-windows-vm` exists and its compose
+  file exists (`${OMARCHY_WINDOWS_DIR:-/var/lib/omarchy/windows}/docker-compose.yml`
+  or legacy `$HOME/.config/windows/docker-compose.yml`); else libvirt if `virsh` exists and a domain is found;
   else `none`.
 - Domain: `DOMAIN` from `${XDG_CONFIG_HOME:-$HOME/.config}/windows/libvirt.conf`
   (key=value, same format as `credentials`) if valid and
@@ -52,6 +53,13 @@ Line numbers are from commit `267703f`.
 stats at all, yet the intent promises "basic stats". Step 5 adds one caption
 line while running, for both backends: `N vCPU · X.X GB · Y% CPU`. It
 was kept at approval.
+
+**Implementation deviation (step 1):** the spec's `omarchy-windows-vm status`
+probe is replaced by the compose-file check above. `status` runs
+`migrate_legacy_compose` and a privileged `priv status`, so as a probe it could
+rewrite files, show a sudo/polkit prompt on every backend refresh, and exit 1
+for a configured dockur user who declines it. The compose file is the same
+"configured" test `omarchy-windows-vm` makes first.
 
 ## Steps
 
