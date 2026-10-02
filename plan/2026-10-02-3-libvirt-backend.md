@@ -98,7 +98,8 @@ such tokens). The content scrolls when a short screen caps the card.
 `winvm-stats.sh` normalises libvirt's `-m size=<KiB>k` to GB and keeps one
 specs cache per VM, so dockur and libvirt allocations never mix. CPU is
 shown as a share of the allocated vCPUs. qmllint: 57 warnings, all
-`Style`/`Color` singleton members qmllint cannot resolve, plus the two
+`Style`/`Color` singleton members qmllint cannot resolve (54 after the
+host polish pass), plus the two
 pre-existing ones.
 
 ## Steps
@@ -219,7 +220,7 @@ and a fresh Opus agent reviews `git diff` against this plan.
 ## Tests
 
 ```sh
-devenv shell -- validate          # omarchy validate, qmllint (≤57 warnings, all singleton false positives), bash -n, py_compile, dev/test-launcher
+devenv shell -- validate          # omarchy validate, qmllint (≤54 warnings, all singleton false positives), bash -n, py_compile, dev/test-launcher
 bash winvm-stats.sh               # "running":false with no VM
 bash winvm-stats.sh '-name guest=win11,'
 ```

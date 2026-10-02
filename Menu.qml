@@ -116,7 +116,7 @@ Item {
       color: Color.menu.text
       elide: Text.ElideRight
       font.family: Style.font.family
-      font.pixelSize: Style.font.caption
+      font.pixelSize: Style.font.body
     }
     Text {
       id: stateText
@@ -124,7 +124,7 @@ Item {
       text: statusRow.active ? statusRow.activeText : statusRow.idleText
       color: statusRow.active ? "#2ecc71" : Qt.darker(Color.menu.text, 1.45)
       font.family: Style.font.family
-      font.pixelSize: Style.font.caption
+      font.pixelSize: Style.font.body
       font.bold: true
     }
   }
@@ -160,7 +160,7 @@ Item {
         color: Color.menu.text
         elide: Text.ElideRight
         font.family: Style.font.family
-        font.pixelSize: Style.font.caption
+        font.pixelSize: Style.font.body
       }
       Text {
         id: valueText
@@ -168,7 +168,7 @@ Item {
         text: resourceRow.value
         color: resourceRow.highlight ? Color.accent : Color.menu.text
         font.family: Style.font.family
-        font.pixelSize: Style.font.caption
+        font.pixelSize: Style.font.body
         font.bold: true
       }
     }
@@ -202,6 +202,8 @@ Item {
     onVisibleChanged: if (visible) Qt.callLater(function() { keyScope.forceActiveFocus() })
 
     Rectangle { anchors.fill: parent; color: Color.menu.scrim }
+    // ponytail: extra dim; some themes ship an almost transparent menu scrim.
+    Rectangle { anchors.fill: parent; color: Qt.rgba(0, 0, 0, 0.45) }
     MouseArea { anchors.fill: parent; onClicked: root.close() }
 
     BorderSurface {
@@ -211,7 +213,7 @@ Item {
                       Math.round(panel.height * 0.9))
       anchors.centerIn: parent
       color: Color.menu.background
-      borderSpec: Border.surfaceSpec("menu", "border", Color.menu.border, Math.max(1, Style.space(2)))
+      borderSpec: Border.surfaceSpec("menu", "border", Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.18), 1)
       padding: Style.spacing.popupPadding
       radius: Style.cornerRadius
 
@@ -371,7 +373,7 @@ Item {
                   color: root.foreground
                   wrapMode: Text.Wrap
                   font.family: Style.font.family
-                  font.pixelSize: Style.font.caption
+                  font.pixelSize: Style.font.body
                 }
               }
             }
@@ -405,7 +407,7 @@ Item {
                 }
                 StatusRow {
                   visible: root.isLibvirt
-                  icon: "󰍹"
+                  icon: "󰍲"
                   label: "libvirt domain (" + service.domain + ")"
                   active: service.isRunning
                   activeText: "● Running"
@@ -465,13 +467,16 @@ Item {
                 }
                 ResourceRow {
                   icon: "󰍛"
+                  // Share of the allocated RAM; falls back to % of host RAM if allocation is unknown.
+                  readonly property real allocGb: parseFloat(service.allocatedRam) || 0
+                  readonly property real share: allocGb > 0 ? service.memUsageGb / allocGb : service.memUsagePct / 100
                   label: service.isRunning ? "Memory (" + service.allocatedRam + ")" : "RAM Allocation"
                   value: service.isRunning
-                    ? service.memUsageGb.toFixed(1) + " GB (" + service.memUsagePct.toFixed(0) + "%)"
+                    ? service.memUsageGb.toFixed(1) + " GB (" + (share * 100).toFixed(0) + "%)"
                     : service.allocatedRam + " RAM"
                   highlight: service.isRunning
                   showBar: service.isRunning
-                  fraction: service.memUsagePct / 100
+                  fraction: share
                 }
                 ResourceRow {
                   // ponytail: disk stats come from dockur's data.img only; no libvirt source yet.
@@ -564,20 +569,11 @@ Item {
                 iconText: "󰐥"
                 leftAlign: true
                 bordered: true
-                foreground: Color.urgent
+                foreground: root.dim
                 fontFamily: Style.font.family
                 fontSize: Style.font.body
                 onClicked: root.run("S")
               }
-            }
-
-            Text {
-              width: parent.width
-              horizontalAlignment: Text.AlignHCenter
-              text: "R refresh  ·  Esc close"
-              color: root.dim
-              font.family: Style.font.family
-              font.pixelSize: Style.font.caption
             }
           }
         }
