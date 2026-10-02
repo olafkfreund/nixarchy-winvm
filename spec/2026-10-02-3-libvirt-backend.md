@@ -1,5 +1,5 @@
 ---
-status: draft
+status: approved
 issue: 3
 intent: intent/2026-10-02-3-libvirt-backend.md
 ---
