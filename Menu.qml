@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Windows VM controls in the Omarchy menu. Keyboard first: L/A/W/F/S/R, Esc.
@@ -16,7 +17,7 @@ Item {
   property bool opened: false
   property var targetScreen: null
 
-  readonly property color foreground: Color.menu.text
+  readonly property color foreground: Commons.Color.menu.text
   readonly property color dim: Qt.darker(foreground, 1.45)
   readonly property color surfaceTint: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.04)
   // ponytail: the theme has no "ok"/"busy" tokens; these status-dot colours match the original panel.
@@ -105,7 +106,7 @@ Item {
       anchors.verticalCenter: parent.verticalCenter
       width: Style.space(18)
       text: statusRow.icon
-      color: statusRow.active ? Color.accent : Qt.darker(Color.menu.text, 1.45)
+      color: statusRow.active ? Commons.Color.accent : Qt.darker(Commons.Color.menu.text, 1.45)
       font.family: Style.font.family
       font.pixelSize: Style.font.body
     }
@@ -113,7 +114,7 @@ Item {
       anchors.verticalCenter: parent.verticalCenter
       width: statusRow.width - Style.space(26) - stateText.implicitWidth
       text: statusRow.label
-      color: Color.menu.text
+      color: Commons.Color.menu.text
       elide: Text.ElideRight
       font.family: Style.font.family
       font.pixelSize: Style.font.body
@@ -122,7 +123,7 @@ Item {
       id: stateText
       anchors.verticalCenter: parent.verticalCenter
       text: statusRow.active ? statusRow.activeText : statusRow.idleText
-      color: statusRow.active ? "#2ecc71" : Qt.darker(Color.menu.text, 1.45)
+      color: statusRow.active ? "#2ecc71" : Qt.darker(Commons.Color.menu.text, 1.45)
       font.family: Style.font.family
       font.pixelSize: Style.font.body
       font.bold: true
@@ -149,7 +150,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         width: Style.space(18)
         text: resourceRow.icon
-        color: Color.accent
+        color: Commons.Color.accent
         font.family: Style.font.family
         font.pixelSize: Style.font.body
       }
@@ -157,7 +158,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         width: resourceRow.width - Style.space(26) - valueText.implicitWidth
         text: resourceRow.label
-        color: Color.menu.text
+        color: Commons.Color.menu.text
         elide: Text.ElideRight
         font.family: Style.font.family
         font.pixelSize: Style.font.body
@@ -166,7 +167,7 @@ Item {
         id: valueText
         anchors.verticalCenter: parent.verticalCenter
         text: resourceRow.value
-        color: resourceRow.highlight ? Color.accent : Color.menu.text
+        color: resourceRow.highlight ? Commons.Color.accent : Commons.Color.menu.text
         font.family: Style.font.family
         font.pixelSize: Style.font.body
         font.bold: true
@@ -177,12 +178,12 @@ Item {
       width: parent.width
       height: Style.space(3)
       radius: height / 2
-      color: Qt.rgba(Color.menu.text.r, Color.menu.text.g, Color.menu.text.b, 0.1)
+      color: Qt.rgba(Commons.Color.menu.text.r, Commons.Color.menu.text.g, Commons.Color.menu.text.b, 0.1)
       Rectangle {
         width: parent.width * Math.min(1, Math.max(0, resourceRow.fraction))
         height: parent.height
         radius: parent.radius
-        color: resourceRow.fraction > resourceRow.urgentAt ? Color.urgent : Color.accent
+        color: resourceRow.fraction > resourceRow.urgentAt ? Commons.Color.urgent : Commons.Color.accent
       }
     }
   }
@@ -201,7 +202,7 @@ Item {
 
     onVisibleChanged: if (visible) Qt.callLater(function() { keyScope.forceActiveFocus() })
 
-    Rectangle { anchors.fill: parent; color: Color.menu.scrim }
+    Rectangle { anchors.fill: parent; color: Commons.Color.menu.scrim }
     // ponytail: extra dim; some themes ship an almost transparent menu scrim.
     Rectangle { anchors.fill: parent; color: Qt.rgba(0, 0, 0, 0.45) }
     MouseArea { anchors.fill: parent; onClicked: root.close() }
@@ -212,7 +213,7 @@ Item {
       height: Math.min(content.implicitHeight + card.contentTopInset + card.contentBottomInset,
                       Math.round(panel.height * 0.9))
       anchors.centerIn: parent
-      color: Color.menu.background
+      color: Commons.Color.menu.background
       borderSpec: Border.surfaceSpec("menu", "border", Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.18), 1)
       padding: Style.spacing.popupPadding
       radius: Style.cornerRadius
@@ -267,8 +268,8 @@ Item {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 text: "󰍲"
-                color: service.vmState === "stopping" ? Color.urgent
-                     : (service.isRunning || service.vmState === "starting") ? Color.accent : root.dim
+                color: service.vmState === "stopping" ? Commons.Color.urgent
+                     : (service.isRunning || service.vmState === "starting") ? Commons.Color.accent : root.dim
                 font.family: Style.font.family
                 font.pixelSize: Style.font.display
               }
@@ -306,7 +307,7 @@ Item {
                 implicitHeight: Style.space(26)
                 implicitWidth: badgeRow.implicitWidth + Style.space(16)
                 color: "transparent"
-                borderSpec: Border.controlSpec("normal", root.foreground, Color.accent)
+                borderSpec: Border.controlSpec("normal", root.foreground, Commons.Color.accent)
                 radius: Style.cornerRadius
 
                 Row {
@@ -345,7 +346,7 @@ Item {
               width: parent.width
               implicitHeight: bannerRow.implicitHeight + Style.space(14)
               color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.08)
-              borderSpec: Border.controlSpec("normal", root.foreground, Color.accent)
+              borderSpec: Border.controlSpec("normal", root.foreground, Commons.Color.accent)
               radius: Style.cornerRadius
 
               Row {
@@ -358,7 +359,7 @@ Item {
                   visible: service.isTransitioning
                   anchors.verticalCenter: parent.verticalCenter
                   text: "󰔟"
-                  color: Color.accent
+                  color: Commons.Color.accent
                   font.family: Style.font.family
                   font.pixelSize: Style.font.body
                   RotationAnimation on rotation {
@@ -384,7 +385,7 @@ Item {
               width: parent.width
               implicitHeight: endpoints.implicitHeight + Style.space(16)
               color: root.surfaceTint
-              borderSpec: Border.controlSpec("normal", root.foreground, Color.accent)
+              borderSpec: Border.controlSpec("normal", root.foreground, Commons.Color.accent)
               radius: Style.cornerRadius
 
               Column {
@@ -437,7 +438,7 @@ Item {
               width: parent.width
               implicitHeight: resourceColumn.implicitHeight + Style.space(16)
               color: root.surfaceTint
-              borderSpec: Border.controlSpec("normal", root.foreground, Color.accent)
+              borderSpec: Border.controlSpec("normal", root.foreground, Commons.Color.accent)
               radius: Style.cornerRadius
 
               Column {
