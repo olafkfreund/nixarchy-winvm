@@ -15,8 +15,9 @@ carries the part that applies to `nixarchy.winvm`.
 ## Design
 
 Remove `keepLoaded` from `manifest.json`; update the comments and checks
-that assert it. Safe because VM actions use execDetached; only a status poll lives in the view, and every caller uses `shell toggle`
-(directly or via `nixarchy-plugin`), which loads the view on demand.
+that assert it. Safe because VM actions use execDetached; only a status
+poll lives in the view, and every caller uses `shell toggle` (directly or
+via `nixarchy-plugin`), which loads the view on demand.
 
 ## Risks
 
