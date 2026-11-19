@@ -10,6 +10,5 @@
   "kinds": ["menu"],
   "entryPoints": {
     "menu": "Menu.qml"
-  },
-  "keepLoaded": true
+  }
 }
